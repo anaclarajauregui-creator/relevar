@@ -1,0 +1,129 @@
+========================================================================
+RELEVAR — Motor de relevamientos offline-first
+========================================================================
+
+Aplicación web instalable (PWA) para relevamientos de campo. Vos definís
+los formularios; la misma app sirve para todos los relevamientos. Los datos
+se guardan en el propio dispositivo (IndexedDB) y funcionan sin conexión.
+Cuando hay señal, exportás a Excel/CSV o sincronizás a una planilla de
+Google Sheets.
+
+------------------------------------------------------------------------
+CONTENIDO DEL PAQUETE
+------------------------------------------------------------------------
+  index.html            La aplicación.
+  xlsx.full.min.js      Librería de exportación a Excel (vendorizada, sin CDN).
+  sw.js                 Service worker (hace que cargue sin conexión).
+  manifest.webmanifest  Datos para instalarla como app.
+  icon-192.png / 512    Íconos.
+  LEEME.txt             Este archivo.
+
+------------------------------------------------------------------------
+1) PUBLICAR LA APP  (tiene que servirse por HTTPS)
+------------------------------------------------------------------------
+El service worker y la instalación solo funcionan por HTTPS (o localhost).
+Subí TODOS los archivos juntos, en la misma carpeta. Opciones:
+
+  • GitHub Pages: creá un repo, subí los archivos, activá Pages. Listo.
+  • Cualquier hosting estático (Netlify, servidor municipal, etc.).
+  • Prueba local rápida:  python3 -m http.server  y abrí http://localhost:8000
+
+Al abrirla en el celular, el navegador ofrece "Agregar a pantalla de inicio"
+/ "Instalar". Una vez instalada, abre y carga aunque no haya señal.
+
+------------------------------------------------------------------------
+2) USO
+------------------------------------------------------------------------
+  • Inicio → "+ Nuevo": creás un relevamiento y le agregás campos.
+    Tipos disponibles: texto, texto largo, número, entero, fecha, hora,
+    opción única, opción múltiple, Sí/No, ubicación GPS, foto.
+  • Podés exportar el formulario a .json para reutilizarlo o pasárselo a
+    otro encuestador (lo importa desde el inicio).
+  • "Cargar registro": completás y guardás. Funciona 100% offline.
+  • "Ver datos": lista de registros, exportar Excel/CSV, sincronizar.
+  • ⚙ Configuración: nombre del encuestador y URL de sincronización.
+
+Las fotos quedan guardadas SOLO en el dispositivo (no se envían por sync
+para no saturar la planilla); en la exportación aparecen como cantidad.
+
+------------------------------------------------------------------------
+3) SINCRONIZAR A GOOGLE SHEETS  (opcional)
+------------------------------------------------------------------------
+a) Creá una planilla de Google. Copiá su ID (lo que está entre /d/ y /edit
+   en la URL).
+b) Extensiones → Apps Script. Pegá el código de abajo, reemplazando
+   SHEET_ID por el ID de tu planilla.
+c) Implementar → Nueva implementación → tipo "Aplicación web":
+      - Ejecutar como: Yo
+      - Quién tiene acceso: Cualquiera
+   Autorizá los permisos. Copiá la URL que termina en /exec.
+d) En la app: ⚙ Configuración → pegá esa URL en "URL de sincronización".
+e) En "Ver datos" → "Sincronizar". Cada relevamiento se escribe en una
+   pestaña con el nombre del formulario; los encabezados salen de los campos.
+
+IMPORTANTE (patrón estable): para cambios futuros del script, editá SIEMPRE
+la implementación existente (Administrar implementaciones → editar) en vez de
+crear una nueva, así la URL /exec no cambia y no tenés que reconfigurar la app.
+
+------- CÓDIGO APPS SCRIPT (Code.gs) -----------------------------------
+
+const SHEET_ID = "PEGAR_AQUI_EL_ID_DE_LA_PLANILLA";
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const nombre = (data.formulario && data.formulario.nombre || "Registros").substring(0, 90);
+    let sh = ss.getSheetByName(nombre) || ss.insertSheet(nombre);
+
+    const campos = (data.formulario && data.formulario.campos) || [];
+    const encabezados = ["ID", "Fecha", "Encuestador", "Dispositivo"]
+      .concat(campos.map(c => c.etiqueta));
+
+    // Escribe encabezados si la hoja está vacía
+    if (sh.getLastRow() === 0) {
+      sh.appendRow(encabezados);
+      sh.getRange(1, 1, 1, encabezados.length).setFontWeight("bold");
+      sh.setFrozenRows(1);
+    }
+
+    const registros = data.registros || [];
+    const filas = registros.map(function (r) {
+      const base = [r.id, r.fecha, r.encuestador || "", r.dispositivo || ""];
+      const valores = campos.map(function (c) {
+        const v = r.valores ? r.valores[c.etiqueta] : "";
+        if (v == null) return "";
+        if (typeof v === "object") {
+          if (v.lat != null) return v.lat + "," + v.lng;   // GPS
+          return JSON.stringify(v);
+        }
+        if (Array.isArray(v)) return v.join("; ");
+        return v;
+      });
+      return base.concat(valores);
+    });
+
+    if (filas.length) {
+      sh.getRange(sh.getLastRow() + 1, 1, filas.length, encabezados.length).setValues(filas);
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: true, guardados: filas.length }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+------------------------------------------------------------------------
+4) COPIA DE SEGURIDAD
+------------------------------------------------------------------------
+⚙ Configuración → "Descargar copia de seguridad (.json)" baja todos los
+relevamientos y registros. Guardala periódicamente: mientras no sincronices
+ni exportes, los datos viven solo en ese dispositivo.
+
+========================================================================
+Relevar v1 · Paleta: navy #273B84 / teal #16C7BF / magenta #F13776 / naranja #F7AB1A
+========================================================================
