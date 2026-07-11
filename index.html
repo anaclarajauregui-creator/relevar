@@ -1498,7 +1498,7 @@ function sanitizeForSync(f,valores){
 }
 async function shareApp(){
   const url = location.origin + location.pathname;
-  const texto = "📋 Relevar — app de relevamientos de la Municipalidad de Curuzú Cuatiá.\n\nAbrí este link en el celular y elegí \"Agregar a pantalla de inicio\" para instalarla. Funciona sin conexión.\n\n" + url;
+  const texto = "📋 Relevar — app de relevamientos de la Municipalidad de Curuzú Cuatiá.\n\nAbrí este link en el celular y elegí \"Agregar a pantalla de inicio\" para instalarla. Funciona sin conexión.\n\n⚠️ Si aparece un aviso de Play Protect, tocá \"Instalar de todas formas\" — es una app del municipio; el aviso sale solo porque no viene de Play Store.\n\n" + url;
   if(navigator.share){
     try{ await navigator.share({ title:"Relevar", text:texto }); return; }catch(e){ if(e.name==="AbortError") return; }
   }
