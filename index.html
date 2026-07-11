@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#273B84">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Relevar · Motor de relevamientos</title>
+<style>
+  :root{
+    --navy:#273B84; --navy-d:#1c2c63; --teal:#16C7BF; --magenta:#F13776; --orange:#F7AB1A;
+    --ink:#1a2233; --ink-soft:#4a5468; --line:#e2e6ef; --bg:#f4f6fb; --card:#ffffff;
+    --ok:#0f9d8f; --shadow:0 1px 3px rgba(20,30,60,.08),0 6px 18px rgba(20,30,60,.06);
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); font-size:16px; line-height:1.45;
+    -webkit-font-smoothing:antialiased; overscroll-behavior-y:none;
+  }
+  button{font-family:inherit;font-size:16px;cursor:pointer;border:none;background:none;color:inherit}
+  input,select,textarea{font-family:inherit;font-size:16px}
+  h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.01em}
+  .app{max-width:720px;margin:0 auto;min-height:100vh;padding-bottom:96px}
+
+  /* App bar */
+  .bar{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;display:flex;align-items:center;gap:12px;
+    box-shadow:0 2px 10px rgba(20,30,60,.18)}
+  .bar .back{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(255,255,255,.12);font-size:20px;flex:0 0 auto}
+  .bar h1{font-size:19px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar .sub{font-size:12.5px;opacity:.8;font-weight:400}
+  .chip-net{font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;display:flex;
+    align-items:center;gap:6px;background:rgba(255,255,255,.14)}
+  .chip-net .dot{width:8px;height:8px;border-radius:50%;background:var(--teal)}
+  .chip-net.off .dot{background:#c9ced9}
+  .chip-net.off{opacity:.85}
+  .bar .icbtn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(255,255,255,.12);font-size:20px;flex:0 0 auto}
+
+  main{padding:16px}
+  .muted{color:var(--ink-soft)}
+  .center-empty{text-align:center;padding:56px 24px;color:var(--ink-soft)}
+  .center-empty .big{font-size:44px;margin-bottom:10px;opacity:.5}
+
+  /* Cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+  .relev{padding:16px;margin-bottom:14px}
+  .relev .top{display:flex;align-items:flex-start;gap:12px}
+  .relev .top h2{font-size:17px;flex:1}
+  .relev .desc{color:var(--ink-soft);font-size:13.5px;margin-top:2px}
+  .relev .stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .pill{font-size:12.5px;font-weight:600;padding:5px 10px;border-radius:999px;background:#eef1f8;color:var(--navy)}
+  .pill.pend{background:#fdeaf1;color:var(--magenta)}
+  .pill.gray{background:#eef0f5;color:var(--ink-soft)}
+  .relev .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+  .relev .acts .wide{grid-column:1 / -1}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 16px;
+    border-radius:12px;font-weight:600;background:#eef1f8;color:var(--navy);transition:transform .04s}
+  .btn:active{transform:scale(.98)}
+  .btn.pri{background:var(--navy);color:#fff}
+  .btn.save{background:var(--teal);color:#04302d}
+  .btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+  .btn.danger{background:#fdeaf1;color:var(--magenta)}
+  .btn.sm{min-height:40px;font-size:14.5px;padding:0 12px;border-radius:10px}
+  .btn.block{width:100%}
+  .btn[disabled]{opacity:.5;pointer-events:none}
+
+  /* FAB */
+  .fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(20px + env(safe-area-inset-bottom));
+    z-index:45;background:var(--navy);color:#fff;height:56px;padding:0 22px;border-radius:999px;
+    font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(39,59,132,.4)}
+  .fab .plus{font-size:22px;line-height:1}
+
+  /* Forms / fields */
+  .field{margin-bottom:16px}
+  .field > label{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px}
+  .field .req{color:var(--magenta);margin-left:3px}
+  .field .help{font-size:12.5px;color:var(--ink-soft);margin:-2px 0 6px}
+  .inp,textarea.inp,select.inp{width:100%;min-height:48px;padding:11px 13px;border:1.5px solid var(--line);
+    border-radius:11px;background:#fff;color:var(--ink)}
+  textarea.inp{min-height:96px;resize:vertical;line-height:1.4}
+  .inp:focus,textarea.inp:focus,select.inp:focus{outline:none;border-color:var(--navy);
+    box-shadow:0 0 0 3px rgba(39,59,132,.12)}
+  select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234a5468' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--line);
+    border-radius:11px;background:#fff;font-size:15px}
+  .opt input{width:20px;height:20px;accent-color:var(--navy);flex:0 0 auto}
+  .opt.sel{border-color:var(--navy);background:#f5f7fd}
+
+  .switch{display:flex;gap:8px}
+  .switch button{flex:1;min-height:48px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font-weight:600}
+  .switch button.on{border-color:var(--navy);background:var(--navy);color:#fff}
+
+  .gpsbox{display:flex;flex-direction:column;gap:8px}
+  .gpsval{font-size:13.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .photobox{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .thumb{width:76px;height:76px;border-radius:11px;object-fit:cover;border:1.5px solid var(--line);position:relative}
+  .thumb-wrap{position:relative}
+  .thumb-x{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:50%;background:var(--magenta);
+    color:#fff;font-size:14px;display:grid;place-items:center;box-shadow:var(--shadow)}
+
+  /* Builder field rows */
+  .frow{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;margin-bottom:10px}
+  .frow .meta{flex:1;min-width:0}
+  .frow .meta .t{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .frow .meta .s{font-size:12.5px;color:var(--ink-soft)}
+  .frow .ord{display:flex;flex-direction:column;gap:3px}
+  .frow .ord button{width:30px;height:24px;border-radius:7px;background:#eef1f8;color:var(--navy);
+    display:grid;place-items:center;font-size:13px}
+  .frow .edit{width:38px;height:38px;border-radius:10px;background:#eef1f8;color:var(--navy);display:grid;place-items:center;font-size:17px}
+
+  .section-h{font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-soft);margin:22px 0 10px}
+
+  /* Records list */
+  .rec{padding:13px 15px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+  .rec .body{flex:1;min-width:0}
+  .rec .h{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-soft)}
+  .rec .prev{font-size:14.5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dot-sync{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .dot-sync.pend{background:var(--magenta)} .dot-sync.ok{background:var(--teal)}
+
+  /* Modal */
+  .ovl{position:fixed;inset:0;z-index:60;background:rgba(18,24,40,.5);display:flex;align-items:flex-end;
+    justify-content:center;padding:0}
+  .sheet{background:#fff;width:100%;max-width:720px;border-radius:20px 20px 0 0;max-height:92vh;overflow:auto;
+    padding:8px 18px calc(22px + env(safe-area-inset-bottom))}
+  .sheet .grab{width:40px;height:4px;border-radius:2px;background:#d7dbe6;margin:8px auto 14px}
+  .sheet h3{font-size:18px;margin-bottom:16px}
+  .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .modal-actions .btn{flex:1}
+
+  /* Toast */
+  #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom));
+    z-index:80;background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:14.5px;font-weight:600;
+    box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:88%}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:var(--magenta)} #toast.ok{background:var(--ok)}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .banner{background:#fff7e8;border:1px solid #f6dfb0;color:#7a5a12;border-radius:12px;padding:12px 14px;
+    font-size:13.5px;margin-bottom:14px}
+  a{color:var(--navy)}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar" id="bar"></header>
+  <main id="app"></main>
+</div>
+<div id="fab"></div>
+<div id="toast"></div>
+<div id="modal"></div>
+
+<script src="xlsx.full.min.js"></script>
+<script>
+"use strict";
+
+/* ============================================================
+   Relevar — motor de relevamientos offline-first
+   Datos locales: IndexedDB. Sync opcional: Apps Script.
+   ============================================================ */
+
+const DB_NAME = "relevarDB", DB_VER = 1;
+const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbx0bc0X7OZqQY14LppyLHO_0UqTld-cApd9f2JsfGwmHpmsAjcPDtUtOPgkgtjaljUk/exec";
+const DEFAULT_FORMS = [
+  {
+    "id": "f_locro_a_puestos",
+    "nombre": "Locro 2026 - A. Puestos (locreros y emprendedores)",
+    "descripcion": "Censo de puestos. Un formulario por puesto, preferentemente al cierre de la jornada.",
+    "campos": [
+      {
+        "id": "c_nform",
+        "etiqueta": "N.º de formulario",
+        "tipo": "entero",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_fecha",
+        "etiqueta": "Fecha",
+        "tipo": "fecha",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_hora",
+        "etiqueta": "Hora",
+        "tipo": "hora",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_relev",
+        "etiqueta": "Relevador/a",
+        "tipo": "texto",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_npuesto",
+        "etiqueta": "N.º de puesto",
+        "tipo": "texto",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a1_nombre",
+        "etiqueta": "A1. Nombre o denominación del puesto",
+        "tipo": "texto",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a1_foto",
+        "etiqueta": "Foto del puesto",
+        "tipo": "foto",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": "Una o más fotos del frente del puesto"
+      },
+      {
+        "id": "c_a2_rubro",
+        "etiqueta": "A2. Rubro principal del puesto",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Locro",
+          "Otras comidas (choripán, empanadas, asado, etc.)",
+          "Bebidas / kiosco",
+          "Artesanías",
+          "Emprendimiento productivo (indumentaria, cosmética, etc.)",
+          "Otro"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a2_otro",
+        "etiqueta": "A2. Si marcó \"Otro\", especificar",
+        "tipo": "texto",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a3_primeravez",
+        "etiqueta": "A3. ¿Es la primera vez que participa de la Fiesta del Locro?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Es la primera vez",
+          "Ya participó 2 o 3 veces",
+          "Participa hace más de 3 años"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b1_origen",
+        "etiqueta": "B1. Localidad de origen del puesto / emprendimiento",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Curuzú Cuatiá",
+          "Otra localidad de Corrientes",
+          "Otra provincia"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b1_especif",
+        "etiqueta": "B1. Si es otra localidad o provincia, especificar",
+        "tipo": "texto",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c1_total",
+        "etiqueta": "C1. Total de personas que trabajan en el puesto",
+        "tipo": "entero",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c1_mujeres",
+        "etiqueta": "C1. Mujeres",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c1_varones",
+        "etiqueta": "C1. Varones",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c1_menores",
+        "etiqueta": "C1. Menores que ayudan",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c2_vinculo",
+        "etiqueta": "C2. ¿Qué vínculo tienen quienes trabajan en el puesto?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Grupo familiar",
+          "Empleados/as contratados/as",
+          "Socios/as",
+          "Mixto / varias de las anteriores"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c3_actividad",
+        "etiqueta": "C3. Para las personas del puesto, esta actividad es",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "La actividad principal / fuente de ingreso central",
+          "Una actividad complementaria / changa",
+          "Ocasional, solo para la fiesta"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_d1_preparadas",
+        "etiqueta": "D1. Si vende locro: porciones preparadas para hoy",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": "Dejar en blanco si no vende locro"
+      },
+      {
+        "id": "c_d1_vendidas",
+        "etiqueta": "D1. Porciones vendidas (aprox.)",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_d1_precio",
+        "etiqueta": "D1. Precio por porción ($)",
+        "tipo": "numero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_d2_unidades",
+        "etiqueta": "D2. Si es emprendedor/comercio: unidades/productos vendidos (aprox.)",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": "Dejar en blanco si no corresponde"
+      },
+      {
+        "id": "c_d2_ticket",
+        "etiqueta": "D2. Ticket promedio ($)",
+        "tipo": "numero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_e1_insumos",
+        "etiqueta": "E1. Los insumos / mercadería principales, ¿dónde los compró?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Mayormente en comercios de Curuzú Cuatiá",
+          "Mitad local, mitad de afuera",
+          "Mayormente fuera de la localidad",
+          "No corresponde"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_venta",
+        "etiqueta": "F1. En comparación con lo que esperaba, la venta fue",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Mucho menos de lo esperado",
+          "Menos de lo esperado",
+          "Como lo esperado",
+          "Más de lo esperado",
+          "Mucho más de lo esperado"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f2_rentable",
+        "etiqueta": "F2. ¿La participación fue rentable / conveniente para el puesto?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Sí",
+          "Más o menos",
+          "No"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g1_ubicacion",
+        "etiqueta": "G1. Ubicación asignada al puesto (1 muy malo - 5 muy bueno)",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g1_servicios",
+        "etiqueta": "G1. Servicios (luz, agua, limpieza)",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g1_comunicacion",
+        "etiqueta": "G1. Comunicación con la organización",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g1_seguridad",
+        "etiqueta": "G1. Seguridad en el predio",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g2_dificultad",
+        "etiqueta": "G2. Principal dificultad que tuvo durante la fiesta",
+        "tipo": "parrafo",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_h1_volveria",
+        "etiqueta": "H1. ¿Volvería a participar el año próximo?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Sí",
+          "Depende",
+          "No"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_h2_sugerencias",
+        "etiqueta": "H2. Sugerencias o comentarios para mejorar",
+        "tipo": "parrafo",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      }
+    ]
+  },
+  {
+    "id": "f_locro_b_publico",
+    "nombre": "Locro 2026 - B. Público general (visitantes)",
+    "descripcion": "Relevamiento por muestreo durante los 3 días de la fiesta. Abordar visitantes al azar. Si la persona ya fue encuestada un día anterior, agradecer y no completar.",
+    "campos": [
+      {
+        "id": "c_nform",
+        "etiqueta": "N.º de formulario",
+        "tipo": "entero",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_fecha",
+        "etiqueta": "Fecha",
+        "tipo": "fecha",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_hora",
+        "etiqueta": "Hora",
+        "tipo": "hora",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_dia",
+        "etiqueta": "Día de la fiesta",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "1.º",
+          "2.º",
+          "3.º (último)"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_relev",
+        "etiqueta": "Relevador/a",
+        "tipo": "texto",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_zona",
+        "etiqueta": "Zona / punto de relevamiento",
+        "tipo": "texto",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a1_edad",
+        "etiqueta": "A1. Edad (tramo)",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Menos de 18",
+          "18 a 29",
+          "30 a 44",
+          "45 a 59",
+          "60 o más"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a2_sexo",
+        "etiqueta": "A2. Sexo",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Mujer",
+          "Varón",
+          "Otro / prefiere no decir"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a3_residencia",
+        "etiqueta": "A3. Localidad de residencia",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Curuzú Cuatiá",
+          "Otra localidad de Corrientes",
+          "Otra provincia",
+          "Otro país"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_a3_especif",
+        "etiqueta": "A3. Si no reside en Curuzú Cuatiá, especificar localidad/provincia/país",
+        "tipo": "texto",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b1_conquien",
+        "etiqueta": "B1. ¿Con quién vino a la fiesta?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Solo/a",
+          "En pareja",
+          "Con familia (con niños/as)",
+          "Con amigos/as",
+          "En grupo o contingente"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b2_cantidad",
+        "etiqueta": "B2. ¿Cuántas personas integran su grupo (incluido/a usted)?",
+        "tipo": "entero",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b3_dias",
+        "etiqueta": "B3. ¿A cuántos días de la fiesta asistió?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "1 día",
+          "2 días",
+          "3 días o más"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_b4_llego",
+        "etiqueta": "B4. ¿Cómo llegó al predio / a la ciudad?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "A pie",
+          "Auto propio",
+          "Moto",
+          "Colectivo / transporte de línea",
+          "Contingente / combi",
+          "Otro"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_c1_pernocto",
+        "etiqueta": "C1. ¿Se quedó (o se quedará) a dormir en Curuzú Cuatiá?",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "No pernoctó",
+          "Sí, en hotel / hospedaje",
+          "Sí, en casa de familiares o amigos",
+          "Sí, en camping / otro"
+        ],
+        "ayuda": "Solo si reside fuera de Curuzú Cuatiá"
+      },
+      {
+        "id": "c_c2_noches",
+        "etiqueta": "C2. En caso afirmativo, ¿cuántas noches?",
+        "tipo": "entero",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_d1_entero",
+        "etiqueta": "D1. ¿Cómo se enteró de la fiesta? (la principal)",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Redes sociales (Facebook, Instagram, etc.)",
+          "Radio",
+          "TV",
+          "Diario / medios web",
+          "Boca en boca (familia, amigos)",
+          "Carteles / vía pública",
+          "Ya la conocía de años anteriores",
+          "Otro"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_e1_locro",
+        "etiqueta": "E1. ¿Consumió locro en la fiesta?",
+        "tipo": "si_no",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_e2_otros",
+        "etiqueta": "E2. ¿Qué otras cosas consumió o compró?",
+        "tipo": "multiple",
+        "requerido": false,
+        "opciones": [
+          "Otras comidas",
+          "Bebidas",
+          "Artesanías",
+          "Productos de emprendedores",
+          "No consumió nada"
+        ],
+        "ayuda": "Puede marcar varias"
+      },
+      {
+        "id": "c_e3_gasto",
+        "etiqueta": "E3. Gasto total aproximado durante la jornada (por persona)",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Nada / casi nada",
+          "Hasta $10.000",
+          "$10.001 a $25.000",
+          "$25.001 a $50.000",
+          "Más de $50.000"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_comidas",
+        "etiqueta": "F1. Variedad y calidad de las comidas (1 muy malo - 5 muy bueno)",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_espectaculos",
+        "etiqueta": "F1. Espectáculos / música",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_organizacion",
+        "etiqueta": "F1. Organización general",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_limpieza",
+        "etiqueta": "F1. Limpieza del predio",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_banos",
+        "etiqueta": "F1. Baños",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_seguridad",
+        "etiqueta": "F1. Seguridad",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_espacios",
+        "etiqueta": "F1. Espacios y señalización",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f1_preciocalidad",
+        "etiqueta": "F1. Relación precio / calidad",
+        "tipo": "opcion",
+        "requerido": false,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_f2_general",
+        "etiqueta": "F2. Valoración general de la fiesta (puntaje global)",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "Ns/Nc"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g1_recomendaria",
+        "etiqueta": "G1. ¿Recomendaría la fiesta a otras personas?",
+        "tipo": "si_no",
+        "requerido": true,
+        "opciones": [],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g2_volveria",
+        "etiqueta": "G2. ¿Volvería el año próximo?",
+        "tipo": "opcion",
+        "requerido": true,
+        "opciones": [
+          "Sí",
+          "No",
+          "No sabe"
+        ],
+        "ayuda": ""
+      },
+      {
+        "id": "c_g3_sugerencia",
+        "etiqueta": "G3. Sugerencia o comentario",
+        "tipo": "parrafo",
+        "requerido": false,
+        "opciones": [],
+        "ayuda": ""
+      }
+    ]
+  }
+];
+const FIELD_TYPES = {
+  texto:    {label:"Texto corto",   glyph:"Aa", options:false},
+  parrafo:  {label:"Texto largo",   glyph:"¶",  options:false},
+  numero:   {label:"Número",        glyph:"#",  options:false},
+  entero:   {label:"Número entero", glyph:"#",  options:false},
+  fecha:    {label:"Fecha",         glyph:"📅", options:false},
+  hora:     {label:"Hora",          glyph:"🕐", options:false},
+  opcion:   {label:"Opción única",  glyph:"◉",  options:true},
+  multiple: {label:"Opción múltiple",glyph:"☑", options:true},
+  si_no:    {label:"Sí / No",       glyph:"⚑",  options:false},
+  gps:      {label:"Ubicación GPS", glyph:"📍", options:false},
+  foto:     {label:"Foto",          glyph:"📷", options:false},
+};
+
+const state = { config:{}, forms:[], view:"home", ctx:{}, deferredInstall:null };
+
+/* ---------- utils ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nowISO = ()=> new Date().toISOString();
+function fmtDate(iso){ if(!iso) return ""; const d=new Date(iso);
+  return d.toLocaleDateString("es-AR",{day:"2-digit",month:"2-digit",year:"2-digit"})+" "+
+         d.toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"}); }
+function sanitize(s){ return String(s||"relevamiento").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[^a-zA-Z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,40) || "relevamiento"; }
+
+function toast(msg,type=""){ const t=$("#toast"); t.className=type; t.textContent=msg;
+  requestAnimationFrame(()=>t.classList.add("show")); clearTimeout(t._t);
+  t._t=setTimeout(()=>t.classList.remove("show"),2600); }
+
+/* ---------- IndexedDB ---------- */
+let _db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const rq = indexedDB.open(DB_NAME, DB_VER);
+    rq.onupgradeneeded = e=>{
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("forms")) db.createObjectStore("forms",{keyPath:"id"});
+      if(!db.objectStoreNames.contains("records")){
+        const os = db.createObjectStore("records",{keyPath:"id"});
+        os.createIndex("formId","formId",{unique:false});
+        os.createIndex("synced","synced",{unique:false});
+      }
+      if(!db.objectStoreNames.contains("config")) db.createObjectStore("config",{keyPath:"key"});
+    };
+    rq.onsuccess = ()=>{ _db=rq.result; res(_db); };
+    rq.onerror = ()=> rej(rq.error);
+  });
+}
+function tx(store,mode="readonly"){ return _db.transaction(store,mode).objectStore(store); }
+function req(r){ return new Promise((res,rej)=>{ r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+function getAll(store){ return req(tx(store).getAll()); }
+function put(store,val){ return req(tx(store,"readwrite").put(val)); }
+function del(store,key){ return req(tx(store,"readwrite").delete(key)); }
+function getByIndex(store,index,val){
+  return new Promise((res,rej)=>{ const out=[]; const idx=tx(store).index(index);
+    const r=idx.openCursor(IDBKeyRange.only(val));
+    r.onsuccess=e=>{const c=e.target.result; if(c){out.push(c.value);c.continue();}else res(out);};
+    r.onerror=()=>rej(r.error); });
+}
+async function recordsFor(formId){ return getByIndex("records","formId",formId); }
+async function cfgSet(key,value){ state.config[key]=value; await put("config",{key,value}); }
+
+/* ---------- boot ---------- */
+async function boot(){
+  await openDB();
+  const cfgRows = await getAll("config");
+  cfgRows.forEach(r=> state.config[r.key]=r.value);
+  if(!state.config.dispositivo){ await cfgSet("dispositivo","disp-"+Math.random().toString(36).slice(2,7)); }
+  if(state.config.syncUrl===undefined){ await cfgSet("syncUrl", DEFAULT_SYNC_URL); }
+  if(state.config.seededDefaults===undefined){
+    for(const f of DEFAULT_FORMS){
+      const ts = nowISO();
+      await put("forms", { id:f.id, nombre:f.nombre, descripcion:f.descripcion||"", campos:f.campos, createdAt:ts, updatedAt:ts });
+    }
+    await cfgSet("seededDefaults", true);
+  }
+  await refreshForms();
+  bindGlobal();
+  go("home");
+  registerSW();
+}
+async function refreshForms(){
+  state.forms = (await getAll("forms")).sort((a,b)=>(b.updatedAt||"").localeCompare(a.updatedAt||""));
+  // attach counts
+  for(const f of state.forms){
+    const recs = await recordsFor(f.id);
+    f._total = recs.length;
+    f._pend = recs.filter(r=>!r.synced).length;
+  }
+}
+
+/* ---------- router ---------- */
+function go(view, ctx={}){ state.view=view; state.ctx=ctx; render(); window.scrollTo(0,0); }
+function render(){
+  renderBar(); renderFab();
+  const el = $("#app");
+  const map = {home:viewHome,builder:viewBuilder,capture:viewCapture,records:viewRecords,
+               recordDetail:viewRecordDetail,config:viewConfig};
+  el.innerHTML=""; (map[state.view]||viewHome)(el);
+}
+function renderBar(){
+  const online = navigator.onLine;
+  const chip = `<span class="chip-net ${online?"":"off"}"><span class="dot"></span>${online?"En línea":"Sin conexión"}</span>`;
+  const bar = $("#bar"); let inner="";
+  if(state.view==="home"){
+    inner = `<h1>Relevar<div class="sub">Motor de relevamientos</div></h1>${chip}
+      <button class="icbtn" data-nav="config" title="Configuración">⚙</button>`;
+  } else {
+    const titles = {builder:state.ctx.form? (state.ctx.form.id?"Editar formulario":"Nuevo relevamiento"):"Nuevo relevamiento",
+      capture:state.ctx.form?.nombre||"Cargar registro", records:state.ctx.form?.nombre||"Registros",
+      recordDetail:"Registro", config:"Configuración"};
+    const backTo = {builder:"home",capture:"home",records:"home",recordDetail:"records",config:"home"};
+    inner = `<button class="back" data-back="${backTo[state.view]}">‹</button>
+      <h1>${esc(titles[state.view]||"")}</h1>${state.view==="config"?"":chip}`;
+  }
+  bar.innerHTML = inner;
+}
+function renderFab(){
+  const f=$("#fab");
+  if(state.view==="home"){ f.innerHTML=`<button class="fab" data-nav="new"><span class="plus">+</span> Nuevo</button>`; }
+  else f.innerHTML="";
+}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function viewHome(root){
+  if(state.forms.length===0){
+    root.innerHTML = `<div class="center-empty">
+      <div class="big">📋</div>
+      <h2 style="color:var(--ink);margin-bottom:6px">Sin relevamientos todavía</h2>
+      <p>Creá tu primer relevamiento y definí los campos del formulario. Después cargás registros aunque no tengas señal.</p>
+      <button class="btn pri" style="margin:18px auto 0;max-width:260px" data-nav="new">+ Nuevo relevamiento</button>
+      <div style="margin-top:14px"><button class="btn ghost sm" style="margin:0 auto" data-act="import">Importar formulario (.json)</button></div>
+    </div>`;
+    return;
+  }
+  let html = "";
+  for(const f of state.forms){
+    html += `<div class="card relev" data-form="${f.id}">
+      <div class="top">
+        <div style="flex:1;min-width:0">
+          <h2>${esc(f.nombre)}</h2>
+          ${f.descripcion?`<div class="desc">${esc(f.descripcion)}</div>`:""}
+        </div>
+      </div>
+      <div class="stats">
+        <span class="pill gray">${f.campos.length} campo${f.campos.length!==1?"s":""}</span>
+        <span class="pill">${f._total} registro${f._total!==1?"s":""}</span>
+        ${f._pend>0?`<span class="pill pend">${f._pend} sin sincronizar</span>`:""}
+      </div>
+      <div class="acts">
+        <button class="btn save wide" data-open="capture" data-id="${f.id}">＋ Cargar registro</button>
+        <button class="btn" data-open="records" data-id="${f.id}">Ver datos (${f._total})</button>
+        <button class="btn ghost" data-open="builder" data-id="${f.id}">Editar formulario</button>
+      </div>
+    </div>`;
+  }
+  html += `<div style="text-align:center;margin-top:6px"><button class="btn ghost sm" data-act="import" style="margin:0 auto">Importar formulario (.json)</button></div>`;
+  root.innerHTML = html;
+}
+
+/* ============================================================
+   BUILDER — crear / editar formulario
+   ============================================================ */
+function blankForm(){ return {id:"", nombre:"", descripcion:"", campos:[], createdAt:"", updatedAt:""}; }
+
+function viewBuilder(root){
+  const f = state.ctx.form;
+  let html = `<div class="field">
+      <label>Nombre del relevamiento <span class="req">*</span></label>
+      <input class="inp" id="f-nombre" value="${esc(f.nombre)}" placeholder="Ej.: Censo de comercios 2026" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Descripción</label>
+      <input class="inp" id="f-desc" value="${esc(f.descripcion)}" placeholder="Opcional" autocomplete="off">
+    </div>
+    <div class="section-h">Campos del formulario</div>`;
+
+  if(f.campos.length===0){
+    html += `<div class="muted" style="padding:8px 2px 14px">Todavía no agregaste campos. Tocá “Agregar campo”.</div>`;
+  } else {
+    f.campos.forEach((c,i)=>{
+      const t = FIELD_TYPES[c.tipo];
+      html += `<div class="frow">
+        <div class="ord">
+          <button data-move="up" data-i="${i}" ${i===0?"disabled style='opacity:.3'":""}>▲</button>
+          <button data-move="down" data-i="${i}" ${i===f.campos.length-1?"disabled style='opacity:.3'":""}>▼</button>
+        </div>
+        <div class="meta">
+          <div class="t">${esc(c.etiqueta)}${c.requerido?' <span class="req">*</span>':""}</div>
+          <div class="s">${t.glyph} ${t.label}${c.opciones&&c.opciones.length?" · "+c.opciones.length+" opciones":""}</div>
+        </div>
+        <button class="edit" data-editfield="${i}">✎</button>
+      </div>`;
+    });
+  }
+  html += `<button class="btn ghost block" data-act="addfield" style="margin-top:6px">＋ Agregar campo</button>
+
+    <div class="section-h">Guardar</div>
+    <button class="btn pri block" data-act="saveform">Guardar relevamiento</button>
+    <div class="row2" style="margin-top:10px">
+      <button class="btn ghost sm" data-act="exportform">Exportar .json</button>
+      ${f.id?`<button class="btn danger sm" data-act="deleteform">Eliminar relevamiento</button>`:`<span></span>`}
+    </div>
+    <div class="hint">Exportá el formulario en .json para reutilizarlo o compartirlo con otro encuestador (lo importa desde el inicio).</div>`;
+  root.innerHTML = html;
+}
+
+function moveField(i,dir){ const f=state.ctx.form; const j=dir==="up"?i-1:i+1;
+  if(j<0||j>=f.campos.length) return; [f.campos[i],f.campos[j]]=[f.campos[j],f.campos[i]]; render(); }
+
+function syncFormHeader(){ const f=state.ctx.form;
+  const n=$("#f-nombre"), d=$("#f-desc"); if(n) f.nombre=n.value.trim(); if(d) f.descripcion=d.value.trim(); }
+
+/* ----- field editor modal ----- */
+function openFieldModal(index){
+  const f = state.ctx.form;
+  const editing = index!=null;
+  const c = editing ? JSON.parse(JSON.stringify(f.campos[index]))
+                    : {id:uid("c_"),etiqueta:"",tipo:"texto",requerido:false,opciones:[],ayuda:""};
+  const typeOpts = Object.entries(FIELD_TYPES).map(([k,v])=>
+    `<option value="${k}" ${c.tipo===k?"selected":""}>${v.glyph} ${v.label}</option>`).join("");
+  const showOpts = FIELD_TYPES[c.tipo].options;
+  const body = `
+    <div class="field"><label>Etiqueta del campo <span class="req">*</span></label>
+      <input class="inp" id="c-label" value="${esc(c.etiqueta)}" placeholder="Ej.: Nombre del comercio" autocomplete="off"></div>
+    <div class="field"><label>Tipo de campo</label>
+      <select class="inp" id="c-type">${typeOpts}</select></div>
+    <div class="field" id="c-optsbox" style="${showOpts?"":"display:none"}">
+      <label>Opciones (una por línea)</label>
+      <textarea class="inp" id="c-opts" placeholder="Opción 1&#10;Opción 2&#10;Opción 3">${esc((c.opciones||[]).join("\n"))}</textarea>
+    </div>
+    <div class="field"><label>Texto de ayuda</label>
+      <input class="inp" id="c-help" value="${esc(c.ayuda||"")}" placeholder="Opcional" autocomplete="off"></div>
+    <div class="opt ${c.requerido?"sel":""}" id="c-reqrow" style="cursor:pointer">
+      <input type="checkbox" id="c-req" ${c.requerido?"checked":""}>
+      <label for="c-req" style="margin:0;font-weight:600;flex:1">Campo obligatorio</label>
+    </div>
+    <div class="modal-actions">
+      ${editing?`<button class="btn danger" id="c-del">Eliminar</button>`:""}
+      <button class="btn save" id="c-save">${editing?"Guardar cambios":"Agregar campo"}</button>
+    </div>`;
+  openModal(editing?"Editar campo":"Nuevo campo", body, ()=>{
+    $("#c-type").addEventListener("change",ev=>{
+      $("#c-optsbox").style.display = FIELD_TYPES[ev.target.value].options ? "" : "none";
+    });
+    $("#c-reqrow").addEventListener("click",ev=>{ if(ev.target.id!=="c-req"){ const cb=$("#c-req"); cb.checked=!cb.checked; }
+      $("#c-reqrow").classList.toggle("sel",$("#c-req").checked); });
+    $("#c-save").addEventListener("click",()=>{
+      const label=$("#c-label").value.trim();
+      if(!label){ toast("Poné una etiqueta para el campo","err"); return; }
+      c.etiqueta=label; c.tipo=$("#c-type").value; c.requerido=$("#c-req").checked;
+      c.ayuda=$("#c-help").value.trim();
+      c.opciones = FIELD_TYPES[c.tipo].options
+        ? $("#c-opts").value.split("\n").map(s=>s.trim()).filter(Boolean) : [];
+      if(FIELD_TYPES[c.tipo].options && c.opciones.length<2){ toast("Agregá al menos 2 opciones","err"); return; }
+      if(editing) f.campos[index]=c; else f.campos.push(c);
+      closeModal(); render();
+    });
+    const delBtn=$("#c-del"); if(delBtn) delBtn.addEventListener("click",()=>{ f.campos.splice(index,1); closeModal(); render(); });
+  });
+}
+
+async function saveForm(){
+  syncFormHeader();
+  const f = state.ctx.form;
+  if(!f.nombre){ toast("Poné un nombre al relevamiento","err"); return; }
+  if(f.campos.length===0){ toast("Agregá al menos un campo","err"); return; }
+  const isNew = !f.id;
+  if(isNew){ f.id=uid("f_"); f.createdAt=nowISO(); }
+  f.updatedAt = nowISO();
+  await put("forms", JSON.parse(JSON.stringify(f)));
+  await refreshForms();
+  toast(isNew?"Relevamiento creado":"Cambios guardados","ok");
+  go("home");
+}
+async function deleteForm(){
+  const f=state.ctx.form;
+  openConfirm(`Eliminar “${f.nombre}”`, `Se borrarán el formulario y sus ${f._total||0} registros del dispositivo. Esta acción no se puede deshacer.`, "Eliminar", async ()=>{
+    const recs = await recordsFor(f.id);
+    for(const r of recs) await del("records",r.id);
+    await del("forms", f.id);
+    await refreshForms(); closeModal(); toast("Relevamiento eliminado"); go("home");
+  });
+}
+function exportForm(){
+  syncFormHeader(); const f=state.ctx.form;
+  const clean = {nombre:f.nombre,descripcion:f.descripcion,campos:f.campos,_relevar:"form-v1"};
+  downloadBlob(JSON.stringify(clean,null,2), `formulario_${sanitize(f.nombre)}.json`, "application/json");
+}
+function importFormFlow(){
+  const inp=document.createElement("input"); inp.type="file"; inp.accept=".json,application/json";
+  inp.onchange=async()=>{ const file=inp.files[0]; if(!file) return;
+    try{ const data=JSON.parse(await file.text());
+      if(!data.campos||!Array.isArray(data.campos)) throw 0;
+      const f=blankForm(); f.id=uid("f_"); f.nombre=data.nombre||"Relevamiento importado";
+      f.descripcion=data.descripcion||""; f.createdAt=nowISO(); f.updatedAt=nowISO();
+      f.campos=data.campos.map(c=>({id:c.id||uid("c_"),etiqueta:c.etiqueta||"Campo",tipo:FIELD_TYPES[c.tipo]?c.tipo:"texto",
+        requerido:!!c.requerido,opciones:Array.isArray(c.opciones)?c.opciones:[],ayuda:c.ayuda||""}));
+      await put("forms",f); await refreshForms(); toast("Formulario importado","ok"); go("builder",{form:f});
+    }catch(e){ toast("Archivo .json inválido","err"); } };
+  inp.click();
+}
+
+/* ============================================================
+   CAPTURE — cargar registro
+   ============================================================ */
+function viewCapture(root){
+  const f = state.ctx.form;
+  const draft = state.ctx.draft || {};
+  let html = `<div class="banner">📍 ${f._total||0} registro${(f._total||0)!==1?"s":""} cargado${(f._total||0)!==1?"s":""} · Encuestador: <b>${esc(state.config.encuestador||"—")}</b></div>`;
+  f.campos.forEach(c=> html += renderCaptureField(c, draft[c.id]));
+  html += `<div style="height:8px"></div>
+    <button class="btn save block" data-act="saverec">Guardar registro</button>
+    <button class="btn pri block" data-act="saverec-new" style="margin-top:10px">Guardar y cargar otro</button>`;
+  root.innerHTML = html;
+  bindCaptureFields();
+}
+
+function renderCaptureField(c, val){
+  const req = c.requerido?'<span class="req">*</span>':"";
+  const help = c.ayuda?`<div class="help">${esc(c.ayuda)}</div>`:"";
+  let ctrl="";
+  switch(c.tipo){
+    case "texto": ctrl=`<input class="inp" data-cid="${c.id}" value="${esc(val||"")}" autocomplete="off">`; break;
+    case "parrafo": ctrl=`<textarea class="inp" data-cid="${c.id}">${esc(val||"")}</textarea>`; break;
+    case "numero": ctrl=`<input class="inp" type="number" inputmode="decimal" step="any" data-cid="${c.id}" value="${esc(val??"")}">`; break;
+    case "entero": ctrl=`<input class="inp" type="number" inputmode="numeric" step="1" data-cid="${c.id}" value="${esc(val??"")}">`; break;
+    case "fecha": ctrl=`<input class="inp" type="date" data-cid="${c.id}" value="${esc(val||"")}">`; break;
+    case "hora": ctrl=`<input class="inp" type="time" data-cid="${c.id}" value="${esc(val||"")}">`; break;
+    case "si_no": {
+      ctrl=`<div class="switch" data-cid="${c.id}">
+        <button type="button" data-val="Sí" class="${val==="Sí"?"on":""}">Sí</button>
+        <button type="button" data-val="No" class="${val==="No"?"on":""}">No</button></div>`; break; }
+    case "opcion": {
+      ctrl=`<div class="opts" data-cid="${c.id}">`+c.opciones.map(o=>
+        `<label class="opt ${val===o?"sel":""}"><input type="radio" name="${c.id}" value="${esc(o)}" ${val===o?"checked":""}>${esc(o)}</label>`).join("")+`</div>`; break; }
+    case "multiple": {
+      const arr = Array.isArray(val)?val:[];
+      ctrl=`<div class="opts" data-cid="${c.id}" data-multi="1">`+c.opciones.map(o=>
+        `<label class="opt ${arr.includes(o)?"sel":""}"><input type="checkbox" value="${esc(o)}" ${arr.includes(o)?"checked":""}>${esc(o)}</label>`).join("")+`</div>`; break; }
+    case "gps": {
+      const g=val; ctrl=`<div class="gpsbox" data-cid="${c.id}">
+        <button type="button" class="btn ghost" data-gps="${c.id}">📍 ${g?"Actualizar ubicación":"Capturar ubicación"}</button>
+        <div class="gpsval" id="gps-${c.id}">${g?`Lat ${g.lat.toFixed(6)}, Lng ${g.lng.toFixed(6)} (±${Math.round(g.acc)} m)`:"Sin capturar"}</div></div>`; break; }
+    case "foto": {
+      const arr=Array.isArray(val)?val:[];
+      ctrl=`<div class="photobox" data-cid="${c.id}" id="ph-${c.id}">
+        ${arr.map((src,i)=>`<div class="thumb-wrap"><img class="thumb" src="${src}"><button type="button" class="thumb-x" data-delphoto="${c.id}" data-pi="${i}">×</button></div>`).join("")}
+        <button type="button" class="btn ghost" style="height:76px;width:76px;padding:0;font-size:24px" data-photo="${c.id}">＋</button></div>`; break; }
+    default: ctrl=`<input class="inp" data-cid="${c.id}" value="${esc(val||"")}">`;
+  }
+  return `<div class="field"><label>${esc(c.etiqueta)} ${req}</label>${help}${ctrl}</div>`;
+}
+
+function bindCaptureFields(){
+  const draft = state.ctx.draft = state.ctx.draft || {};
+  // text-like
+  $("#app").querySelectorAll("[data-cid]").forEach(el=>{
+    const cid = el.dataset.cid;
+    if(el.classList.contains("inp")){ el.addEventListener("input",()=> draft[cid]=el.value); }
+  });
+  // si_no switch
+  $("#app").querySelectorAll(".switch[data-cid]").forEach(sw=>{
+    sw.addEventListener("click",e=>{ const b=e.target.closest("button[data-val]"); if(!b) return;
+      const cur=draft[sw.dataset.cid]; const v=b.dataset.val;
+      draft[sw.dataset.cid]= cur===v?"":v;
+      sw.querySelectorAll("button").forEach(x=>x.classList.toggle("on",draft[sw.dataset.cid]===x.dataset.val)); });
+  });
+  // opcion / multiple
+  $("#app").querySelectorAll(".opts[data-cid]").forEach(box=>{
+    const cid=box.dataset.cid, multi=box.dataset.multi;
+    box.addEventListener("change",()=>{
+      if(multi){ draft[cid]=[...box.querySelectorAll("input:checked")].map(i=>i.value); }
+      else { draft[cid]=box.querySelector("input:checked")?.value||""; }
+      box.querySelectorAll(".opt").forEach(l=> l.classList.toggle("sel", l.querySelector("input").checked));
+    });
+  });
+  // gps
+  $("#app").querySelectorAll("[data-gps]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const cid=btn.dataset.gps; const out=$("#gps-"+cid);
+      if(!navigator.geolocation){ toast("Este dispositivo no tiene GPS","err"); return; }
+      out.textContent="Obteniendo ubicación…"; btn.disabled=true;
+      navigator.geolocation.getCurrentPosition(p=>{
+        draft[cid]={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy,ts:nowISO()};
+        out.textContent=`Lat ${draft[cid].lat.toFixed(6)}, Lng ${draft[cid].lng.toFixed(6)} (±${Math.round(draft[cid].acc)} m)`;
+        btn.disabled=false; btn.textContent="📍 Actualizar ubicación";
+      },err=>{ out.textContent="No se pudo obtener la ubicación"; btn.disabled=false;
+        toast("Permiso de ubicación denegado","err"); },{enableHighAccuracy:true,timeout:15000,maximumAge:0});
+    });
+  });
+  // photos
+  $("#app").querySelectorAll("[data-photo]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const cid=btn.dataset.photo;
+      const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.capture="environment";
+      inp.onchange=async()=>{ const file=inp.files[0]; if(!file) return;
+        const dataURL=await downscaleImage(file,1280,0.7);
+        draft[cid]=Array.isArray(draft[cid])?draft[cid]:[]; draft[cid].push(dataURL);
+        rerenderPhotos(cid); };
+      inp.click();
+    });
+  });
+  $("#app").addEventListener("click",e=>{
+    const dx=e.target.closest("[data-delphoto]"); if(dx){ const cid=dx.dataset.delphoto,pi=+dx.dataset.pi;
+      draft[cid].splice(pi,1); rerenderPhotos(cid); }
+  });
+}
+function rerenderPhotos(cid){
+  const box=$("#ph-"+cid); if(!box) return; const arr=state.ctx.draft[cid]||[];
+  box.innerHTML = arr.map((src,i)=>`<div class="thumb-wrap"><img class="thumb" src="${src}"><button type="button" class="thumb-x" data-delphoto="${cid}" data-pi="${i}">×</button></div>`).join("")
+    + `<button type="button" class="btn ghost" style="height:76px;width:76px;padding:0;font-size:24px" data-photo="${cid}">＋</button>`;
+  box.querySelector("[data-photo]").addEventListener("click",()=>{
+    const inp=document.createElement("input"); inp.type="file"; inp.accept="image/*"; inp.capture="environment";
+    inp.onchange=async()=>{ const file=inp.files[0]; if(!file) return;
+      const dataURL=await downscaleImage(file,1280,0.7); state.ctx.draft[cid].push(dataURL); rerenderPhotos(cid); };
+    inp.click();
+  });
+}
+function downscaleImage(file,maxDim,quality){
+  return new Promise(res=>{ const img=new Image(); const rd=new FileReader();
+    rd.onload=()=>{ img.onload=()=>{ let{width:w,height:h}=img;
+      if(w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; }
+      else if(h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+      const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h); res(cv.toDataURL("image/jpeg",quality)); };
+      img.src=rd.result; };
+    rd.readAsDataURL(file); });
+}
+
+async function saveRecord(andNew){
+  const f=state.ctx.form, draft=state.ctx.draft||{};
+  // validation
+  for(const c of f.campos){
+    if(!c.requerido) continue;
+    const v=draft[c.id];
+    const empty = v==null || v==="" || (Array.isArray(v)&&v.length===0);
+    if(empty){ toast(`Falta completar: ${c.etiqueta}`,"err"); return; }
+  }
+  const rec = { id:uid("r_"), formId:f.id, valores:JSON.parse(JSON.stringify(draft)),
+    encuestador:state.config.encuestador||"", dispositivo:state.config.dispositivo||"",
+    ts:nowISO(), synced:false, syncedAt:null };
+  await put("records",rec);
+  await refreshForms();
+  const fresh = state.forms.find(x=>x.id===f.id); state.ctx.form=fresh;
+  toast("Registro guardado","ok");
+  if(andNew){ state.ctx.draft={}; render(); }
+  else go("home");
+}
+
+/* ============================================================
+   RECORDS — ver / exportar / sincronizar
+   ============================================================ */
+async function viewRecords(root){
+  const f=state.ctx.form;
+  const recs = (await recordsFor(f.id)).sort((a,b)=> b.ts.localeCompare(a.ts));
+  state.ctx._recs = recs;
+  const pend = recs.filter(r=>!r.synced).length;
+  let html = `<div class="row2">
+      <button class="btn" data-act="export-xlsx">⬇ Excel (.xlsx)</button>
+      <button class="btn" data-act="export-csv">⬇ CSV</button>
+    </div>
+    <button class="btn ${pend>0?"pri":"ghost"} block" style="margin-top:10px" data-act="sync" ${pend===0?"disabled":""}>
+      ${pend>0?`↑ Sincronizar ${pend} registro${pend!==1?"s":""}`:"Todo sincronizado ✓"}</button>
+    ${state.config.syncUrl?"":`<div class="hint">Configurá la URL de sincronización en ⚙ Configuración para enviar a Google Sheets.</div>`}
+    <div class="section-h">${recs.length} registro${recs.length!==1?"s":""}</div>`;
+
+  if(recs.length===0){ html+=`<div class="center-empty"><div class="big">🗒️</div><p>Todavía no cargaste registros.</p>
+    <button class="btn save" style="margin:12px auto 0;max-width:240px" data-open="capture" data-id="${f.id}">＋ Cargar registro</button></div>`; }
+  else {
+    recs.forEach(r=>{
+      const prev = f.campos.slice(0,2).map(c=> valPreview(r.valores[c.id])).filter(Boolean).join(" · ") || "—";
+      html += `<div class="card rec" data-rec="${r.id}">
+        <span class="dot-sync ${r.synced?"ok":"pend"}" title="${r.synced?"Sincronizado":"Pendiente"}"></span>
+        <div class="body">
+          <div class="h">${fmtDate(r.ts)}${r.encuestador?" · "+esc(r.encuestador):""}</div>
+          <div class="prev">${esc(prev)}</div>
+        </div>
+        <span style="color:var(--ink-soft);font-size:20px">›</span>
+      </div>`;
+    });
+  }
+  root.innerHTML = html;
+}
+function valPreview(v){
+  if(v==null||v==="") return "";
+  if(Array.isArray(v)){ if(v.length && typeof v[0]==="string" && v[0].startsWith("data:image")) return `${v.length} foto${v.length!==1?"s":""}`;
+    return v.join(", "); }
+  if(typeof v==="object" && v.lat!=null) return `📍 ${v.lat.toFixed(4)},${v.lng.toFixed(4)}`;
+  return String(v);
+}
+
+async function viewRecordDetail(root){
+  const f=state.ctx.form, r=state.ctx.record;
+  let html = `<div class="banner">${fmtDate(r.ts)} · <b>${esc(r.encuestador||"—")}</b> · <span style="color:${r.synced?"var(--ok)":"var(--magenta)"}">${r.synced?"sincronizado":"pendiente"}</span></div>`;
+  f.campos.forEach(c=>{
+    const v=r.valores[c.id]; let disp="";
+    if(c.tipo==="foto" && Array.isArray(v)) disp=`<div class="photobox">${v.map(s=>`<img class="thumb" src="${s}">`).join("")}</div>`;
+    else if(c.tipo==="gps" && v&&v.lat!=null) disp=`<a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank">${v.lat.toFixed(6)}, ${v.lng.toFixed(6)}</a> <span class="muted">(±${Math.round(v.acc)} m)</span>`;
+    else if(Array.isArray(v)) disp=esc(v.join(", "))||"<span class='muted'>—</span>";
+    else disp = v!=null&&v!==""? esc(v) : "<span class='muted'>—</span>";
+    html += `<div class="field"><label>${esc(c.etiqueta)}</label><div>${disp}</div></div>`;
+  });
+  html += `<button class="btn danger block" style="margin-top:14px" data-act="delrec">Eliminar este registro</button>`;
+  root.innerHTML = html;
+}
+
+/* ----- export ----- */
+function recordsToRows(f,recs){
+  return recs.map(r=>{
+    const row = {"ID":r.id,"Fecha":r.ts,"Encuestador":r.encuestador,"Dispositivo":r.dispositivo,"Sincronizado":r.synced?"sí":"no"};
+    f.campos.forEach(c=>{ const v=r.valores[c.id];
+      let out="";
+      if(c.tipo==="gps" && v&&v.lat!=null) out=`${v.lat},${v.lng}`;
+      else if(c.tipo==="foto" && Array.isArray(v)) out=`${v.length} foto(s)`;
+      else if(Array.isArray(v)) out=v.join("; ");
+      else out = v==null?"":String(v);
+      row[c.etiqueta]=out;
+    });
+    return row;
+  });
+}
+function exportCSV(){
+  const f=state.ctx.form, recs=state.ctx._recs||[];
+  if(!recs.length){ toast("No hay registros para exportar","err"); return; }
+  const rows=recordsToRows(f,recs); const headers=Object.keys(rows[0]);
+  const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const csv="\uFEFF"+[headers.map(q).join(","),...rows.map(r=>headers.map(h=>q(r[h]??"")).join(","))].join("\r\n");
+  downloadBlob(csv, `${sanitize(f.nombre)}_${dateTag()}.csv`, "text/csv;charset=utf-8");
+}
+function exportXLSX(){
+  const f=state.ctx.form, recs=state.ctx._recs||[];
+  if(!recs.length){ toast("No hay registros para exportar","err"); return; }
+  const rows=recordsToRows(f,recs);
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Registros");
+  XLSX.writeFile(wb, `${sanitize(f.nombre)}_${dateTag()}.xlsx`);
+}
+function dateTag(){ const d=new Date(); return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`; }
+function downloadBlob(content,filename,type){
+  const blob = content instanceof Blob ? content : new Blob([content],{type});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+/* ----- sync ----- */
+async function syncRecords(){
+  const f=state.ctx.form;
+  if(!state.config.syncUrl){ toast("Configurá la URL de sincronización primero","err"); go("config"); return; }
+  if(!navigator.onLine){ toast("Sin conexión: reintentá cuando tengas señal","err"); return; }
+  const recs=(await recordsFor(f.id)).filter(r=>!r.synced);
+  if(!recs.length){ toast("No hay registros pendientes"); return; }
+  toast(`Enviando ${recs.length}…`);
+  const payload = { tipo:"relevar", enviado:nowISO(),
+    formulario:{ id:f.id, nombre:f.nombre, campos:f.campos.map(c=>({id:c.id,etiqueta:c.etiqueta,tipo:c.tipo})) },
+    registros: recs.map(r=>({ id:r.id, fecha:r.ts, encuestador:r.encuestador, dispositivo:r.dispositivo,
+      valores:sanitizeForSync(f,r.valores) })) };
+  try{
+    const res = await fetch(state.config.syncUrl,{ method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload) });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    let data;
+    try{ data = JSON.parse(await res.text()); }
+    catch(_){ throw new Error("El script no devolvió una respuesta válida (revisá que la URL sea la del Apps Script publicado, no la del editor)"); }
+    if(!data.ok){ throw new Error(data.error || "el script devolvió un error"); }
+    for(const r of recs){ r.synced=true; r.syncedAt=nowISO(); await put("records",r); }
+    await refreshForms(); state.ctx.form=state.forms.find(x=>x.id===f.id);
+    toast(`${recs.length} registro${recs.length!==1?"s":""} sincronizado${recs.length!==1?"s":""} (${data.guardados} en la planilla)`,"ok");
+    render();
+  }catch(err){ toast("Error al sincronizar: "+err.message,"err"); }
+}
+function sanitizeForSync(f,valores){
+  // strip heavy base64 photos; send count instead (photos stay local)
+  const out={};
+  f.campos.forEach(c=>{ const v=valores[c.id];
+    if(c.tipo==="foto" && Array.isArray(v)) out[c.etiqueta]=`${v.length} foto(s)`;
+    else if(c.tipo==="gps" && v&&v.lat!=null) out[c.etiqueta]={lat:v.lat,lng:v.lng,acc:v.acc};
+    else out[c.etiqueta]=v==null?"":v;
+  });
+  return out;
+}
+async function shareApp(){
+  const url = location.origin + location.pathname;
+  const texto = "📋 Relevar — app de relevamientos de la Municipalidad de Curuzú Cuatiá.\n\nAbrí este link en el celular y elegí \"Agregar a pantalla de inicio\" para instalarla. Funciona sin conexión.\n\n" + url;
+  if(navigator.share){
+    try{ await navigator.share({ title:"Relevar", text:texto }); return; }catch(e){ if(e.name==="AbortError") return; }
+  }
+  // fallback: WhatsApp directo
+  window.open("https://wa.me/?text="+encodeURIComponent(texto), "_blank");
+}
+async function testSyncConnection(){
+  if(!state.config.syncUrl){ toast("Primero guardá una URL de sincronización","err"); return; }
+  if(!navigator.onLine){ toast("Sin conexión: reintentá cuando tengas señal","err"); return; }
+  toast("Probando conexión…");
+  const payload = { tipo:"relevar", enviado:nowISO(),
+    formulario:{ id:"test_conexion", nombre:"🔌 Prueba de conexión Relevar", campos:[] }, registros:[] };
+  try{
+    const res = await fetch(state.config.syncUrl,{ method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(payload) });
+    if(!res.ok) throw new Error("HTTP "+res.status+" — revisá que la URL sea correcta");
+    let data;
+    try{ data = JSON.parse(await res.text()); }
+    catch(_){ throw new Error("El script no devolvió JSON válido (¿la URL es la del editor y no la publicada /exec?)"); }
+    if(!data.ok) throw new Error(data.error || "el script devolvió un error");
+    toast('✔ Conexión OK — revisá la pestaña "🔌 Prueba de conexión Relevar" en tu planilla',"ok");
+  }catch(err){ toast("Falló la prueba: "+err.message,"err"); }
+}
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+async function viewConfig(root){
+  let used="—";
+  try{ if(navigator.storage&&navigator.storage.estimate){ const e=await navigator.storage.estimate();
+    used=`${(e.usage/1048576).toFixed(1)} MB usados`; } }catch(_){}
+  const totalRecs = state.forms.reduce((a,f)=>a+(f._total||0),0);
+  root.innerHTML = `
+    <div class="field"><label>Nombre del encuestador</label>
+      <input class="inp" id="cfg-enc" value="${esc(state.config.encuestador||"")}" placeholder="Tu nombre" autocomplete="off">
+      <div class="hint">Se guarda en cada registro que cargues.</div></div>
+
+    <div class="field"><label>URL de sincronización (Apps Script)</label>
+      <input class="inp" id="cfg-url" value="${esc(state.config.syncUrl||"")}" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" spellcheck="false">
+      <div class="hint">Ya viene precargada: todos los relevamientos sincronizan a la misma planilla, cada uno en su propia pestaña. Solo tocá esto si necesitás apuntar a otro script.</div></div>
+
+    <button class="btn pri block" data-act="savecfg">Guardar configuración</button>
+    <button class="btn ghost block" style="margin-top:10px" data-act="testsync">🔌 Probar conexión con la planilla</button>
+    <button class="btn save block" style="margin-top:10px" data-act="shareapp">📤 Compartir la app (WhatsApp, etc.)</button>
+
+    <div class="section-h">Dispositivo</div>
+    <div class="card" style="padding:14px 16px">
+      <div class="muted" style="font-size:13.5px">ID de dispositivo: <b>${esc(state.config.dispositivo||"")}</b></div>
+      <div class="muted" style="font-size:13.5px;margin-top:4px">${state.forms.length} relevamientos · ${totalRecs} registros · ${used}</div>
+    </div>
+
+    <div id="install-slot"></div>
+
+    <div class="section-h">Datos</div>
+    <button class="btn ghost block" data-act="backup">Descargar copia de seguridad (.json)</button>
+    <button class="btn danger block" style="margin-top:10px" data-act="wipe">Borrar todos los datos del dispositivo</button>
+    <div class="hint">Relevar v1 · Los datos viven solo en este dispositivo hasta que sincronizás o exportás.</div>`;
+  if(state.deferredInstall){
+    $("#install-slot").innerHTML=`<div class="section-h">Instalar</div>
+      <button class="btn pri block" data-act="install">📲 Instalar app en el dispositivo</button>
+      <div class="hint">Para usarla sin conexión y con acceso directo en la pantalla de inicio.</div>`;
+  }
+}
+async function saveCfg(){
+  await cfgSet("encuestador", $("#cfg-enc").value.trim());
+  await cfgSet("syncUrl", $("#cfg-url").value.trim());
+  toast("Configuración guardada","ok");
+}
+async function backupAll(){
+  const forms=await getAll("forms"), records=await getAll("records");
+  downloadBlob(JSON.stringify({_relevar:"backup-v1",fecha:nowISO(),forms,records},null,2),
+    `relevar_backup_${dateTag()}.json`, "application/json");
+}
+function wipeAll(){
+  openConfirm("Borrar todos los datos","Se eliminarán todos los relevamientos y registros de este dispositivo. Descargá una copia de seguridad antes si los necesitás. Esta acción no se puede deshacer.","Borrar todo",async()=>{
+    for(const s of ["forms","records"]){ await new Promise(r=>{const t=tx(s,"readwrite").clear();t.onsuccess=r;}); }
+    await refreshForms(); closeModal(); toast("Datos borrados"); go("home");
+  });
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openModal(title,bodyHTML,after){
+  const m=$("#modal");
+  m.innerHTML=`<div class="ovl" data-ovl><div class="sheet"><div class="grab"></div><h3>${esc(title)}</h3>${bodyHTML}</div></div>`;
+  m.querySelector("[data-ovl]").addEventListener("click",e=>{ if(e.target.hasAttribute("data-ovl")) closeModal(); });
+  if(after) after();
+}
+function closeModal(){ $("#modal").innerHTML=""; }
+function openConfirm(title,msg,okLabel,onOk){
+  openModal(title,`<p class="muted" style="margin:0 0 4px">${esc(msg)}</p>
+    <div class="modal-actions"><button class="btn ghost" data-cancel>Cancelar</button>
+    <button class="btn danger" data-ok>${esc(okLabel)}</button></div>`,()=>{
+    $("#modal [data-cancel]").addEventListener("click",closeModal);
+    $("#modal [data-ok]").addEventListener("click",onOk);
+  });
+}
+
+/* ============================================================
+   GLOBAL EVENT BINDING
+   ============================================================ */
+function bindGlobal(){
+  // header + fab (delegated)
+  document.body.addEventListener("click", async e=>{
+    const nav=e.target.closest("[data-nav]");
+    if(nav){ const n=nav.dataset.nav;
+      if(n==="config") go("config");
+      else if(n==="new") go("builder",{form:blankForm()});
+      return; }
+    const back=e.target.closest("[data-back]");
+    if(back){ go(back.dataset.back, back.dataset.back==="records"?{form:state.ctx.form}:{}); return; }
+  });
+
+  // main app clicks (delegated)
+  $("#app").addEventListener("click", async e=>{
+    const openBtn=e.target.closest("[data-open]");
+    if(openBtn){ const id=openBtn.dataset.id, f=state.forms.find(x=>x.id===id); if(!f) return;
+      const kind=openBtn.dataset.open;
+      if(kind==="capture") go("capture",{form:JSON.parse(JSON.stringify(f)),draft:{}});
+      else if(kind==="records") go("records",{form:f});
+      else if(kind==="builder") go("builder",{form:JSON.parse(JSON.stringify(f))});
+      return; }
+    const recCard=e.target.closest("[data-rec]");
+    if(recCard && state.view==="records"){ const r=(state.ctx._recs||[]).find(x=>x.id===recCard.dataset.rec);
+      if(r) go("recordDetail",{form:state.ctx.form,record:r}); return; }
+
+    const mv=e.target.closest("[data-move]"); if(mv){ moveField(+mv.dataset.i,mv.dataset.move); return; }
+    const ef=e.target.closest("[data-editfield]"); if(ef){ syncFormHeader(); openFieldModal(+ef.dataset.editfield); return; }
+
+    const act=e.target.closest("[data-act]")?.dataset.act; if(!act) return;
+    switch(act){
+      case "import": importFormFlow(); break;
+      case "addfield": syncFormHeader(); openFieldModal(null); break;
+      case "saveform": saveForm(); break;
+      case "exportform": exportForm(); break;
+      case "deleteform": deleteForm(); break;
+      case "saverec": saveRecord(false); break;
+      case "saverec-new": saveRecord(true); break;
+      case "export-csv": exportCSV(); break;
+      case "export-xlsx": exportXLSX(); break;
+      case "sync": syncRecords(); break;
+      case "delrec": {
+        const r=state.ctx.record;
+        openConfirm("Eliminar registro","Se borrará este registro del dispositivo.","Eliminar",async()=>{
+          await del("records",r.id); await refreshForms(); state.ctx.form=state.forms.find(x=>x.id===r.formId)||state.ctx.form;
+          closeModal(); toast("Registro eliminado"); go("records",{form:state.ctx.form}); }); break; }
+      case "savecfg": saveCfg(); break;
+      case "testsync": testSyncConnection(); break;
+      case "shareapp": shareApp(); break;
+      case "backup": backupAll(); break;
+      case "wipe": wipeAll(); break;
+      case "install": doInstall(); break;
+    }
+  });
+
+  window.addEventListener("online", ()=>{ renderBar(); toast("Conexión recuperada","ok"); });
+  window.addEventListener("offline", ()=>{ renderBar(); });
+  window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); state.deferredInstall=e;
+    if(state.view==="config") render(); });
+}
+async function doInstall(){ if(!state.deferredInstall) return; state.deferredInstall.prompt();
+  await state.deferredInstall.userChoice; state.deferredInstall=null; render(); }
+
+/* ---------- service worker ---------- */
+function registerSW(){ if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{}); } }
+
+/* ---------- start ---------- */
+boot().catch(err=>{ document.getElementById("app").innerHTML =
+  `<div class="center-empty"><div class="big">⚠️</div><p>No se pudo iniciar la base de datos local.<br>${esc(err.message||err)}</p></div>`; });
+</script>
+</body>
+</html>
