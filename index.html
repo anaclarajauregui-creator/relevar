@@ -173,7 +173,8 @@
    ============================================================ */
 
 const DB_NAME = "relevarDB", DB_VER = 1;
-const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbx0bc0X7OZqQY14LppyLHO_0UqTld-cApd9f2JsfGwmHpmsAjcPDtUtOPgkgtjaljUk/exec";
+const DEFAULT_SYNC_URL = "https://script.google.com/macros/s/AKfycbzgohJ1400PwRjrISNnOSDk-O9yaV0zkE7CVsxF59lIoEnx6flcNi4aPboJjOyM4GXR/exec";
+const OLD_SYNC_URLS = ["https://script.google.com/macros/s/AKfycbx0bc0X7OZqQY14LppyLHO_0UqTld-cApd9f2JsfGwmHpmsAjcPDtUtOPgkgtjaljUk/exec"];
 const DEFAULT_FORMS = [
   {
     "id": "f_locro_a_puestos",
@@ -981,6 +982,7 @@ async function boot(){
   cfgRows.forEach(r=> state.config[r.key]=r.value);
   if(!state.config.dispositivo){ await cfgSet("dispositivo","disp-"+Math.random().toString(36).slice(2,7)); }
   if(state.config.syncUrl===undefined){ await cfgSet("syncUrl", DEFAULT_SYNC_URL); }
+  else if(OLD_SYNC_URLS.includes(state.config.syncUrl)){ await cfgSet("syncUrl", DEFAULT_SYNC_URL); }
   if(state.config.seededDefaults===undefined){
     for(const f of DEFAULT_FORMS){
       const ts = nowISO();
