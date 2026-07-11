@@ -1,0 +1,17 @@
+{
+  "name": "Relevar — Motor de relevamientos",
+  "short_name": "Relevar",
+  "description": "Registro de datos de campo offline-first. Formularios configurables por relevamiento.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#273B84",
+  "theme_color": "#273B84",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
